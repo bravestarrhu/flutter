@@ -1,0 +1,57 @@
+name: Sync with Upstream
+on:
+  schedule:
+    - cron: '0 0 * * *'  # 每天0点（UTC时间）执行，北京时间需+8小时（即cron: '0 8 * * *'）
+  workflow_dispatch:  # 支持手动触发
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # 获取完整历史，包含所有分支和Tag
+
+      - name: Add upstream remote
+        run: |
+          git remote add upstream https://github.com/flutter/flutter.git  # 替换为上游仓库地址
+          git fetch upstream --prune  # 清理无效远程分支
+
+      - name: Check and sync branches
+        run: |
+          # 定义需要检查的分支
+          branches=("master" "stable" "beta" "tag")
+          needs_sync=false
+          
+          # 检查分支是否有更新
+          for branch in "${branches[@]}"; do
+            if [ -n "$(git diff --name-only upstream/$branch)" ]; then
+              echo "发现 $branch 分支有更新，准备同步..."
+              needs_sync=true
+              break
+            fi
+          done
+          
+          # 检查是否有新Tag
+          local_tags=$(git tag | sort -V)
+          remote_tags=$(git ls-remote --tags upstream | grep -o 'refs/tags/[0-9\.]*' | cut -d/ -f3 | sort -V)
+          new_tags=$(comm -23 <(echo "$local_tags") <(echo "$remote_tags"))
+          
+          if [ -n "$new_tags" ]; then
+            echo "发现新Tag: $new_tags，准备同步..."
+            needs_sync=true
+          fi
+          
+          # 如有变动则同步
+          if [ "$needs_sync" = true ]; then
+            git checkout main  # 假设同步到本地main分支，可替换为其他分支
+            for branch in "${branches[@]}"; do
+              git merge upstream/$branch || true  # 合并分支（冲突时跳过，需手动处理）
+            done
+            git pull upstream --tags  # 拉取所有Tag
+            git push origin main --tags  # 推送本地main分支和Tag到远程
+            echo "同步完成"
+          else
+            echo "上游仓库无变动"
+          fi
