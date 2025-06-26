@@ -36,3 +36,9 @@ jobs:
           git checkout master
           git merge upstream/master
           git push origin master
+          git checkout beta
+          git merge upstream/beta
+          git push origin beta
+          git checkout stable
+          git merge upstream/stable
+          git push origin stable

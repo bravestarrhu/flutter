@@ -19,12 +19,20 @@ git push origin --tags
 rem 当前执行：拉取上游更新
 git fetch upstream
 
-rem 当前执行：切换到主分支并合并更新
+rem 当前执行：切换到主分支并合并更新并推送到个人fork仓库
 git checkout master
 git merge upstream/master
-
-rem 当前执行：推送到个人fork仓库
 git push origin master
+
+rem 当前执行：切换到 beta 分支并合并更新并推送到个人fork仓库
+git checkout beta
+git merge upstream/beta
+git push origin beta
+
+rem 当前执行：切换到 stable 分支并合并更新并推送到个人fork仓库
+git checkout stable
+git merge upstream/stable
+git push origin stable
 
 rem 同步完成！
 pause
